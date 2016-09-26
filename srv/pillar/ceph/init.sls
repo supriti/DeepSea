@@ -1,5 +1,6 @@
 
 
+{% include 'ceph/config.sls' ignore missing %}
 
 {% include 'ceph/cluster/' + grains['id'] + '.sls' ignore missing %}
 

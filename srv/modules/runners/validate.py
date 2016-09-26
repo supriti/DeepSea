@@ -605,6 +605,7 @@ class Validate(object):
     def report(self):
         self.printer.add(self.name, self.passed, self.errors)
 
+
 def usage():
     print "salt-run validate.pillar cluster"
     print "salt-run validate.pillar name=cluster"

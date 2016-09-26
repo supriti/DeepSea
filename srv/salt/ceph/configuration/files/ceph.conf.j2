@@ -9,6 +9,8 @@ filestore_xattr_use_omap = true
 public_network = {{ salt['pillar.get']('public_network') }}
 cluster_network = {{ salt['pillar.get']('cluster_network') }}
 
+osd_journal_size = {{ salt['pillar.get']('osd_journal_size') }}
+
 {% if 'rgw' in salt['pillar.get']('roles', []) %}
 {% set default_rgw = [ 'rgw' ] %}
 {% else %}
