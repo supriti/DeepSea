@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from fnmatch import fnmatch
 import re
 import logging
 
@@ -85,6 +86,7 @@ class ConfigSection(object):
         super(ConfigSection, self).__init__(*args, **kwargs)
         self.key = key
         self.parent = parent
+        self.minions = parent.minions
         if key in parent.dict:
             self.dict = parent.dict[key]
         else:
@@ -96,17 +98,24 @@ class ConfigSection(object):
 
 class IncludeExcludeSection(object):
     def __init__(self, *args, **kwargs):
-        super(IncludeExcludeSection, self).__init__()
+        super(IncludeExcludeSection, self).__init__(*args, **kwargs)
+        self._expand_globs('include')
+        self._expand_globs('exclude')
 
     def include_set(self):
-        if 'include' in self.dict:
-            return self.dict['include']
-        return list()
+        return self.dict['include']
 
     def exclude_set(self):
-        if 'exclude' in self.dict:
-            return self.dict['exclude']
-        return list()
+        return self.dict['exclude']
+
+    def _expand_globs(self, set_key):
+        new_set = list()
+        if set_key in self.dict:
+            for host in self.minions:
+                for pattern in self.dict[set_key]:
+                    if fnmatch(host, pattern):
+                        new_set.append(host)
+        self.dict[set_key] = new_set
 
 
 class SectionOpts(ConfigSection):
@@ -190,7 +199,7 @@ class DeviceOpts(SectionOpts):
         return self.journal_only()
 
 
-class HostOpts(SectionOpts, IncludeExcludeSection):
+class HostOpts(IncludeExcludeSection, SectionOpts):
     def __init__(self, host, parent):
         super(HostOpts, self).__init__(host, parent)
         self.host = host
@@ -205,7 +214,7 @@ class HostOpts(SectionOpts, IncludeExcludeSection):
                                          res_prefix)
 
 
-class OSDSSection(ConfigSection, IncludeExcludeSection):
+class OSDSSection(IncludeExcludeSection, ConfigSection):
     def __init__(self, config):
         super(OSDSSection, self).__init__('osds', config)
         self.osd_members_initialized = False
@@ -283,7 +292,7 @@ class MONGlobalOpts(SectionOpts):
         return self._get_opt_bool_val('allow_osd_role_sharing', True)
 
 
-class MONSSection(ConfigSection, IncludeExcludeSection):
+class MONSSection(IncludeExcludeSection, ConfigSection):
     def __init__(self, config):
         super(MONSSection, self).__init__('mons', config)
         self.mon_members_initialized = False
@@ -322,7 +331,7 @@ class AdminsGlobalOpts(SectionOpts):
         return self._get_opt_bool_val('allow_osd_role_sharing', True)
 
 
-class AdminsSection(ConfigSection, IncludeExcludeSection):
+class AdminsSection(IncludeExcludeSection, ConfigSection):
     def __init__(self, config):
         super(AdminsSection, self).__init__('admins', config)
         self.admin_members_initialized = False
@@ -358,6 +367,7 @@ class ClusterConfig(IncludeExcludeSection):
     def __init__(self, config_dict, minion_set):
         self.dict = config_dict
         self.minions = minion_set
+        super(ClusterConfig, self).__init__()
         self.members_initialized = False
         self.member_set = None
         self.osds = OSDSSection(self)
@@ -420,7 +430,8 @@ class ClusterConfig(IncludeExcludeSection):
 ##
 ## config_test = {
 ##     'name': 'cluster1',
-##     'exclude': ['mds1.ceph'],
+##     'include': ['*'],
+##     'exclude': ['mds*'],
 ##     'osds': {
 ##         'filter': {
 ##             'n_disks_gt': '1'
@@ -446,12 +457,13 @@ class ClusterConfig(IncludeExcludeSection):
 ##         'data2.ceph': {
 ##             'exclude': [ 'vdc' ]
 ##         },
-##         'exclude': ['admin.ceph', 'mon1.ceph']
+##         'exclude': ['data[34]*', 'mon1.ceph']
 ##     },
 ##     'mons': {
 ##         'global': {
 ##             'allow_osd_role_sharing': 'false'
-##         }
+##         },
+##         'include': ['mon*']
 ##     }
 ## }
 ## c = ClusterConfig(config_test, ['admin.ceph', 'mon1.ceph', 'data1.ceph', 'data2.ceph', 'data3.ceph', 'mds1.ceph'])

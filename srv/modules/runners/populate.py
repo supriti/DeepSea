@@ -23,7 +23,7 @@ import uuid
 import ipaddress
 import logging
 
-from config import ClusterConfig
+import config
 
 
 """
@@ -460,7 +460,7 @@ class Settings(object):
         self.pillar_data = local.cmd('*', 'pillar.items', [], expr_form="glob")
         self.pillar_data = self.pillar_data[self.pillar_data.keys()[0]]
         self.minions = local.cmd('*' , 'grains.get', [ 'id' ])
-        self.cluster_config = ClusterConfig(
+        self.cluster_config = config.ClusterConfig(
                 self.pillar_data['cluster_config'], self.minions)
 
 
