@@ -134,14 +134,15 @@ class CephStorage(object):
         Save each proposal for each server of each model
         """
         count = 0
-        for model in servers.keys():
-            for proposal in proposals[model]:
-                count += 1
-                for server in servers[model]:
-                    name = model + "-" + str(count)
-                    self._save_proposal(name, server, proposal)
-                    self._save_roles(name, server)
-                    #self._save_keyring(name)
+            #log.debug("model: {}".format(model))
+        for server in proposals.keys():
+            count += 1
+            for model in proposals[server]:
+                name = model + "-" + str(count)
+                proposal = proposals[server][model]
+                self._save_proposal(name, server, proposal)
+                self._save_roles(name, server)
+                #self._save_keyring(name)
             count = 0
 
 
@@ -242,20 +243,20 @@ class HardwareProfile(object):
 
     def _profiles(self, name, hostname):
         """
-        Create a profile and track all storage servers that match that profile.
-        if the name already exists, verify that the order matches.  If so, add
-        to list.  If not, create a new name and try again.
-
-        Hardware profiles with a single server will alert the sysadmin to 
-        missing/failed drives or servers with disks out of order.
         """
-        if name in self.profiles:
-            self.servers[name].append(hostname)
-        else:
-            self.servers[name] = [ hostname ]
-            self.profiles[name] = {}
-            for label in self.model.keys():
-                self.profiles[name][label] = self.model[label]
+        #if name in self.servers:
+        #    self.servers[name].append( hostname )
+        #else:
+        #    self.servers[name] = [ hostname ]
+        if hostname not in self.profiles:
+            self.profiles[hostname] = {}
+        if name not in self.profiles[hostname]:
+            self.profiles[hostname][name] = {}
+        for label in self.model.keys():
+            if label not in self.profiles[hostname][name]:
+                self.profiles[hostname][name][label] = {}
+            self.profiles[hostname][name][label] = self.model[label]
+
         
         
     def _name(self):
@@ -316,23 +317,28 @@ class DiskConfiguration(object):
         for server in self.storage_nodes:
             self.hardware.add(server, self.storage_nodes[server])
 
-        for configuration in self.hardware.profiles:
-            if not configuration in self.proposals:
-                self.proposals[configuration] = []
-            drives = self.hardware.profiles[configuration]
+        for server in self.hardware.profiles.keys():
+            if server not in self.proposals:
+                self.proposals[server] = {}
+            for configuration in self.hardware.profiles[server]:
+                if configuration not in self.proposals[server]:
+                    self.proposals[server][configuration] = []
 
-            log.debug("configuration {} with no journals".format(configuration))
-            self.proposals[configuration].append(self._assignments(drives))
-            for drive_model in drives.keys():
-                # How many types of drives are SSDs, NVMes
-                if self.hardware.rotates[drive_model] == '0':
-                    log.debug("configuration {} with {} journal".format(configuration, drive_model))
-                    proposal = self._assignments(drives, drive_model)
-                    if proposal:
-                        self.proposals[configuration].append(proposal)
-                    else:
-                        log.warning("No proposal for {} as journal on {}".format(drive_model, configuration))
+                drives = self.hardware.profiles[server][configuration]
+
+                log.debug("configuration {} with no journals".format(configuration))
+                self.proposals[server][configuration].append(self._assignments(drives))
+                for drive_model in drives.keys():
+                    # How many types of drives are SSDs, NVMes
+                    if self.hardware.rotates[drive_model] == '0':
+                        log.debug("configuration {} with {} journal".format(configuration, drive_model))
+                        proposal = self._assignments(drives, drive_model)
+                        if proposal:
+                            self.proposals[server][configuration].append(proposal)
+                        else:
+                            log.warning("No proposal for {} as journal on {}".format(drive_model, configuration))
         
+       
         
     def _assignments(self, drives, journal=None):
         """
@@ -453,20 +459,11 @@ class CephRoles(object):
         self.writer = writer
 
         self.root_dir = settings.root_dir
-        #self.keyring_roles = { 'admin': Utils.secret(), 
-        #                       'mon': Utils.secret(), 
-        #                       'storage': Utils.secret(),
-        #                       'mds': Utils.secret(),
-        #                       'igw': Utils.secret() }
-
-        ## Add rgw roles
-        #for rgw_role in self._rgw_configurations():
-        #    self.keyring_roles[rgw_role] = Utils.secret()
-
         self.networks = self._networks(self.servers)
         self.public_network, self.cluster_network = self.public_cluster(self.networks) 
 
-        self.master_contents = {}
+        #self.master_contents = {}
+        self.available_roles = []
 
     def _rgw_configurations(self):
         """
@@ -500,26 +497,12 @@ class CephRoles(object):
         for every server.
         """
         roles = [ 'admin', 'mon', 'storage', 'mds', 'igw' ] + self._rgw_configurations()
+        self.available_roles.extend(roles)
 
-        #roles = self.keyring_roles.keys()
         for role in roles:
             role_dir = "{}/role-{}".format(self.root_dir, role)
             if not os.path.isdir(role_dir):
                 create_dirs(role_dir, self.root_dir)
-            #roles_dir = role_dir + "/stack/default/{}/roles".format(self.cluster)
-            #if not os.path.isdir(roles_dir):
-            #    create_dirs(roles_dir, self.root_dir)
-            #if role in self.keyring_roles:
-            #    filename = roles_dir + "/" +  role + ".yml"
-            #    contents = {}
-            #    role_key = self._role_mapping(role)
-
-            #    contents['keyring'] = [ { role_key: self.keyring_roles[role] } ]
-            #    self.writer.write(filename, contents)
-            #    if 'keyring' in self.master_contents:
-            #        self.master_contents['keyring'].append({ role_key: self.keyring_roles[role] })
-            #    else:
-            #        self.master_contents['keyring'] = [ { role_key: self.keyring_roles[role] } ]
 
             # All minions are not necessarily storage - see CephStorage
             if role != 'storage':
@@ -530,6 +513,8 @@ class CephRoles(object):
         Allows admins to target non-Ceph minions
         """
         roles = [ 'mds-client', 'rgw-client', 'igw-client', 'mds-nfs', 'rgw-nfs' ]
+        self.available_roles.extend(roles)
+
         for role in roles:
             role_dir = "{}/role-{}".format(self.root_dir, role)
             self._role_assignment(role_dir, role)
@@ -540,13 +525,9 @@ class CephRoles(object):
         The master role can access all keyring secrets
         """
         role = 'master'
-        role_dir = "{}/role-{}".format(self.root_dir, role)
-        #roles_dir = role_dir + "/stack/default/{}/roles".format(self.cluster)
-        #if not os.path.isdir(roles_dir):
-        #    create_dirs(roles_dir, self.root_dir)
-        #filename = roles_dir + "/" +  role + ".yml"
-        #self.writer.write(filename, self.master_contents)
+        self.available_roles.extend([ role ])
 
+        role_dir = "{}/role-{}".format(self.root_dir, role)
         self._role_assignment(role_dir, role)
             
     def _role_mapping(self, role):
@@ -620,6 +601,7 @@ class CephRoles(object):
 
             contents['public_network'] = self.public_network
             contents['cluster_network'] = self.cluster_network
+            contents['available_roles'] = self.available_roles
   
             self.writer.write(filename, contents)
 
