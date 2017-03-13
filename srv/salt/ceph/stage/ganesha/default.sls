@@ -1,18 +1,14 @@
-
-ganesha install:
+ganesha auth:
   salt.state:
-    - tgt: "I@roles:ganesha and I@cluster:ceph"
+    - tgt: {{ salt['pillar.get']('master_minion') }}
     - tgt_type: compound
-    - sls: ceph.ganesha.install
+    - sls: ceph.ganesha.auth
 
-ganesha configure:
+{% for role in salt['pillar.get']('ganesha_configurations', [ 'ganesha' ]) %}
+start {{ role }}::
   salt.state:
-    - tgt: "I@roles:ganesha and I@cluster:ceph"
-    - tgt_type: compound
-    - sls: ceph.ganesha.configure
-
-ganesha service:
-  salt.state:
-    - tgt: "I@roles:ganesha and I@cluster:ceph"
+    - tgt: "I@roles:{{ role }} and I@cluster:ceph"
     - tgt_type: compound
     - sls: ceph.ganesha
+
+{% endfor %}

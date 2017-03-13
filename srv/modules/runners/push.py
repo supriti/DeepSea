@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import os
+import errno
 import glob
 import yaml
 import pprint
@@ -72,6 +73,16 @@ def proposal(filename = "/srv/pillar/ceph/proposals/policy.cfg", dryrun = False)
     pillar_data.output(common)
     return True
 
+def _create_dirs(path, root):
+    try:
+        os.makedirs(path)
+    except OSError as err:
+        if err.errno == errno.EACCES:
+            log.exception('''
+            ERROR: Cannot create dir {}
+            Please make sure {} is owned by salt
+            '''.format(path, root))
+            raise err
 
 class PillarData(object):
     """
@@ -135,7 +146,7 @@ class PillarData(object):
         """
         path_dir = os.path.dirname(filename)
         if not os.path.isdir(path_dir):
-            os.makedirs(path_dir)
+            _create_dirs(path_dir, self.pillar_dir)
         log.info("Writing {}".format(filename))
         if not self.dryrun:
             with open(filename, "w") as yml:
@@ -149,7 +160,7 @@ class PillarData(object):
         """
         path_dir = os.path.dirname(custom)
         if not os.path.isdir(path_dir):
-            os.makedirs(path_dir)
+            _create_dirs(path_dir, self.pillar_dir)
         if not self.dryrun:
             if not os.path.isfile(custom):
                 log.info("Writing {}".format(custom))
@@ -161,6 +172,23 @@ class PillarData(object):
                             custom_split[1])
                     yml.write("# {}\n".format(custom))
                     yml.write("# Overwrites configuration in {}\n".format(custom_for))
+                    self._examples(custom, yml)
+
+
+    def _examples(self, custom, yml):
+        """
+        Provide commented examples for admin convenience
+        """
+        if 'cluster.yml' in custom:
+            text = '''
+              #rgw_configurations:
+              #  rgw:
+              #    users:
+              #      - { uid: "demo", name: "Demo", email: "demo@demo.nil" }
+              #      - { uid: "demo1", name: "Demo1", email: "demo1@demo.nil" }
+              '''
+            text = re.sub(re.compile("^ {14}", re.MULTILINE), "", text)
+            yml.write(text)
 
 
     def _merge(self, pathname, common):

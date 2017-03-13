@@ -19,7 +19,7 @@
 # See also http://en.opensuse.org/openSUSE:Shared_library_packaging_policy
 
 Name:           deepsea
-Version:        0.7
+Version:        0.7.4
 Release:        0
 Summary:        Salt solution for deploying and managing Ceph
 
@@ -31,6 +31,7 @@ Source0:        deepsea-%{version}.tar.gz
 BuildRequires:  salt-master
 Requires:       salt-master
 Requires:       salt-minion
+Requires:       python-ipaddress
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
@@ -44,11 +45,13 @@ A collection of Salt files providing a deployment of Ceph as a series of stages.
 %build
 
 %install
-make DESTDIR=%{buildroot} install
+make DESTDIR=%{buildroot} copy-files
 
 %post
 # Initialize to most likely value
 sed -i '/^master_minion:/s!_REPLACE_ME_!'`hostname -f`'!' /srv/pillar/ceph/master_minion.sls
+# change owner to salt, so deepsea can create proposals
+chown -R salt /srv/pillar/ceph
 # Restart salt-master if it's running, so it picks up
 # the config changes in /etc/salt/master.d/modules.conf
 systemctl try-restart salt-master > /dev/null 2>&1 || :
@@ -76,14 +79,22 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %dir /srv/salt/ceph/cephfs
 %dir /srv/salt/ceph/cephfs/benchmarks
 %dir /srv/salt/ceph/cephfs/benchmarks/files
+%dir /srv/salt/ceph/cherrypy
+%dir /srv/salt/ceph/cherrypy/files
 %dir /srv/salt/ceph/configuration
 %dir /srv/salt/ceph/configuration/files
 %dir /srv/salt/ceph/configuration/check
 %dir /srv/salt/ceph/diagnose
 %dir /srv/salt/ceph/events
 %dir /srv/salt/ceph/ganesha
+%dir /srv/salt/ceph/ganesha/auth
+%dir /srv/salt/ceph/ganesha/config
 %dir /srv/salt/ceph/ganesha/configure
+%dir /srv/salt/ceph/ganesha/files
+%dir /srv/salt/ceph/ganesha/key
+%dir /srv/salt/ceph/ganesha/keyring
 %dir /srv/salt/ceph/ganesha/install
+%dir /srv/salt/ceph/ganesha/service
 %dir /srv/salt/ceph/igw
 %dir /srv/salt/ceph/igw/config
 %dir /srv/salt/ceph/igw/files
@@ -124,21 +135,26 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %dir /srv/salt/ceph/packages
 %dir /srv/salt/ceph/packages/common
 %dir /srv/salt/ceph/pool
+%dir /srv/salt/ceph/purge
 %dir /srv/salt/ceph/reactor
 %dir /srv/salt/ceph/refresh
 %dir /srv/salt/ceph/repo
 %dir /srv/salt/ceph/remove
+%dir /srv/salt/ceph/remove/ganesha
 %dir /srv/salt/ceph/remove/igw
 %dir /srv/salt/ceph/remove/igw/auth
 %dir /srv/salt/ceph/remove/mon
 %dir /srv/salt/ceph/remove/mds
 %dir /srv/salt/ceph/remove/rgw
 %dir /srv/salt/ceph/remove/storage
+%dir /srv/salt/ceph/reset
 %dir /srv/salt/ceph/rescind
 %dir /srv/salt/ceph/rescind/admin
 %dir /srv/salt/ceph/rescind/client-cephfs
 %dir /srv/salt/ceph/rescind/client-iscsi
+%dir /srv/salt/ceph/rescind/client-nfs
 %dir /srv/salt/ceph/rescind/client-radosgw
+%dir /srv/salt/ceph/rescind/ganesha
 %dir /srv/salt/ceph/rescind/igw
 %dir /srv/salt/ceph/rescind/igw/keyring
 %dir /srv/salt/ceph/rescind/igw/lrbd
@@ -160,6 +176,7 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %dir /srv/salt/ceph/rgw/auth
 %dir /srv/salt/ceph/rgw/keyring
 %dir /srv/salt/ceph/rgw/restart
+%dir /srv/salt/ceph/rgw/users
 %dir /srv/salt/ceph/stage
 %dir /srv/salt/ceph/stage/all
 %dir /srv/salt/ceph/stage/benchmark
@@ -200,15 +217,24 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %config /srv/salt/ceph/benchmarks/*.sls
 %config /srv/salt/ceph/cephfs/benchmarks/*.sls
 %config /srv/salt/ceph/cephfs/benchmarks/files/fio.service
+%config /srv/salt/ceph/cherrypy/*.sls
+%config /srv/salt/ceph/cherrypy/files/*.conf*
 %config /srv/salt/ceph/configuration/*.sls
 %config /srv/salt/ceph/configuration/check/*.sls
 %config /srv/salt/ceph/configuration/files/ceph.conf*
 /srv/salt/ceph/diagnose/README.md
 %config /srv/salt/ceph/diagnose/*.sls
 %config /srv/salt/ceph/events/*.sls
-%config /srv/salt/ceph/ganehsa/*.sls
-%config /srv/salt/ceph/ganehsa/configure/*.sls
-%config /srv/salt/ceph/ganehsa/install/*.sls
+%config /srv/salt/ceph/ganesha/*.sls
+%config /srv/salt/ceph/ganesha/auth/*.sls
+%config /srv/salt/ceph/ganesha/config/*.sls
+%config /srv/salt/ceph/ganesha/configure/*.sls
+%config /srv/salt/ceph/ganesha/files/*.j2
+%config /srv/salt/ceph/ganesha/files/ganesha.service
+%config /srv/salt/ceph/ganesha/install/*.sls
+%config /srv/salt/ceph/ganesha/key/*.sls
+%config /srv/salt/ceph/ganesha/keyring/*.sls
+%config /srv/salt/ceph/ganesha/service/*.sls
 %config /srv/salt/ceph/igw/*.sls
 %config /srv/salt/ceph/igw/files/*.j2
 %config /srv/salt/ceph/igw/config/*.sls
@@ -251,9 +277,11 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %config /srv/salt/ceph/packages/*.sls
 %config /srv/salt/ceph/packages/common/*.sls
 %config /srv/salt/ceph/pool/*.sls
+%config /srv/salt/ceph/purge/*.sls
 %config /srv/salt/ceph/reactor/*.sls
 %config /srv/salt/ceph/refresh/*.sls
 %config /srv/salt/ceph/repo/*.sls
+%config /srv/salt/ceph/remove/ganesha/*.sls
 %config /srv/salt/ceph/remove/igw/auth/*.sls
 %config /srv/salt/ceph/remove/mon/*.sls
 %config /srv/salt/ceph/remove/mds/*.sls
@@ -263,7 +291,9 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %config /srv/salt/ceph/rescind/admin/*.sls
 %config /srv/salt/ceph/rescind/client-iscsi/*.sls
 %config /srv/salt/ceph/rescind/client-cephfs/*.sls
+%config /srv/salt/ceph/rescind/client-nfs/*.sls
 %config /srv/salt/ceph/rescind/client-radosgw/*.sls
+%config /srv/salt/ceph/rescind/ganesha/*.sls
 %config /srv/salt/ceph/rescind/igw/*.sls
 %config /srv/salt/ceph/rescind/igw/keyring/*.sls
 %config /srv/salt/ceph/rescind/igw/lrbd/*.sls
@@ -278,6 +308,7 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %config /srv/salt/ceph/rescind/rgw/keyring/*.sls
 %config /srv/salt/ceph/rescind/storage/*.sls
 %config /srv/salt/ceph/rescind/storage/keyring/*.sls
+%config /srv/salt/ceph/reset/*.sls
 %config /srv/salt/ceph/restart/*.sls
 %config /srv/salt/ceph/rgw/*.sls
 %config /srv/salt/ceph/rgw/files/*.j2
@@ -285,6 +316,7 @@ systemctl try-restart salt-master > /dev/null 2>&1 || :
 %config /srv/salt/ceph/rgw/auth/*.sls
 %config /srv/salt/ceph/rgw/keyring/*.sls
 %config /srv/salt/ceph/rgw/restart/*.sls
+%config /srv/salt/ceph/rgw/users/*.sls
 %config /srv/salt/ceph/stage/0
 %config /srv/salt/ceph/stage/1
 %config /srv/salt/ceph/stage/2

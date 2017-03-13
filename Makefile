@@ -5,8 +5,9 @@ usage:
 	@echo "Usage:"
 	@echo -e "\tmake install\tInstall DeepSea on this host"
 	@echo -e "\tmake rpm\tBuild an RPM for installation elsewhere"
+	@echo -e "\tmake test\tRun unittests"
 
-install:
+copy-files:
 	# salt-master config files
 	install -d -m 755 $(DESTDIR)/etc/salt/master.d
 	install -m 644 etc/salt/master.d/modules.conf $(DESTDIR)/etc/salt/master.d/
@@ -76,10 +77,23 @@ install:
 	# state files - ganesha
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha
 	install -m 644 srv/salt/ceph/ganesha/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/auth
+	install -m 644 srv/salt/ceph/ganesha/auth/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/auth
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/files
+	install -m 644 srv/salt/ceph/ganesha/files/*.j2 $(DESTDIR)/srv/salt/ceph/ganesha/files
+	install -m 644 srv/salt/ceph/ganesha/files/ganesha.service $(DESTDIR)/srv/salt/ceph/ganesha/files
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/config
+	install -m 644 srv/salt/ceph/ganesha/config/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/config/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/configure
 	install -m 644 srv/salt/ceph/ganesha/configure/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/configure/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/key
+	install -m 644 srv/salt/ceph/ganesha/key/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/key/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/keyring
+	install -m 644 srv/salt/ceph/ganesha/keyring/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/keyring/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/install
 	install -m 644 srv/salt/ceph/ganesha/install/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/install/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/service
+	install -m 644 srv/salt/ceph/ganesha/service/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/service/
 	# state files - igw
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/igw
 	install -m 644 srv/salt/ceph/igw/*.sls $(DESTDIR)/srv/salt/ceph/igw/
@@ -119,6 +133,11 @@ install:
 	install -m 644 srv/salt/ceph/mds/files/*.j2 $(DESTDIR)/srv/salt/ceph/mds/files/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/mds/restart
 	install -m 644 srv/salt/ceph/mds/restart/*.sls $(DESTDIR)/srv/salt/ceph/mds/restart
+	# state files - salt-api
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/cherrypy
+	install -m 644 srv/salt/ceph/cherrypy/*.sls $(DESTDIR)/srv/salt/ceph/cherrypy
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/cherrypy/files
+	install -m 644 srv/salt/ceph/cherrypy/files/*.conf* $(DESTDIR)/srv/salt/ceph/cherrypy/files
 
 	# state files - mines
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/mines
@@ -173,6 +192,9 @@ install:
 	# state files - pool
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/pool
 	install -m 644 srv/salt/ceph/pool/*.sls $(DESTDIR)/srv/salt/ceph/pool/
+	# state files - purge
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/purge
+	install -m 644 srv/salt/ceph/purge/*.sls $(DESTDIR)/srv/salt/ceph/purge/
 	# state files - reactor
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/reactor
 	install -m 644 srv/salt/ceph/reactor/*.sls $(DESTDIR)/srv/salt/ceph/reactor/
@@ -189,6 +211,8 @@ install:
 	install -m 644 srv/salt/ceph/remove/mon/*.sls $(DESTDIR)/srv/salt/ceph/remove/mon/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/remove/rgw
 	install -m 644 srv/salt/ceph/remove/rgw/*.sls $(DESTDIR)/srv/salt/ceph/remove/rgw/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/remove/ganesha
+	install -m 644 srv/salt/ceph/remove/ganesha/*.sls $(DESTDIR)/srv/salt/ceph/remove/ganesha/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/remove/storage
 	install -m 644 srv/salt/ceph/remove/storage/*.sls $(DESTDIR)/srv/salt/ceph/remove/storage/
 	# state files - rescind
@@ -198,6 +222,8 @@ install:
 	install -m 644 srv/salt/ceph/rescind/admin/*.sls $(DESTDIR)/srv/salt/ceph/rescind/admin/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/client-iscsi
 	install -m 644 srv/salt/ceph/rescind/client-iscsi/*.sls $(DESTDIR)/srv/salt/ceph/rescind/client-iscsi/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/ganesha
+	install -m 644 srv/salt/ceph/rescind/ganesha/*.sls $(DESTDIR)/srv/salt/ceph/rescind/ganesha/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/igw
 	install -m 644 srv/salt/ceph/rescind/igw/*.sls $(DESTDIR)/srv/salt/ceph/rescind/igw/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/igw/keyring
@@ -210,6 +236,8 @@ install:
 	install -m 644 srv/salt/ceph/rescind/master/*.sls $(DESTDIR)/srv/salt/ceph/rescind/master/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/client-cephfs
 	install -m 644 srv/salt/ceph/rescind/client-cephfs/*.sls $(DESTDIR)/srv/salt/ceph/rescind/client-cephfs/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/client-nfs
+	install -m 644 srv/salt/ceph/rescind/client-nfs/*.sls $(DESTDIR)/srv/salt/ceph/rescind/client-nfs/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/mds-nfs
 	install -m 644 srv/salt/ceph/rescind/mds-nfs/*.sls $(DESTDIR)/srv/salt/ceph/rescind/mds-nfs/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/mds
@@ -238,6 +266,9 @@ install:
 	# state files - restart
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/restart
 	install -m 644 srv/salt/ceph/restart/*.sls $(DESTDIR)/srv/salt/ceph/restart/
+	# state files - reset
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/reset
+	install -m 644 srv/salt/ceph/reset/*.sls $(DESTDIR)/srv/salt/ceph/reset/
 	# state files - rgw
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rgw
 	install -m 644 srv/salt/ceph/rgw/*.sls $(DESTDIR)/srv/salt/ceph/rgw/
@@ -247,6 +278,8 @@ install:
 	install -m 644 srv/salt/ceph/rgw/auth/*.sls $(DESTDIR)/srv/salt/ceph/rgw/auth/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rgw/keyring
 	install -m 644 srv/salt/ceph/rgw/keyring/*.sls $(DESTDIR)/srv/salt/ceph/rgw/keyring/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rgw/users
+	install -m 644 srv/salt/ceph/rgw/users/*.sls $(DESTDIR)/srv/salt/ceph/rgw/users/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rgw/files
 	install -m 644 srv/salt/ceph/rgw/files/*.j2 $(DESTDIR)/srv/salt/ceph/rgw/files/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rgw/restart
@@ -306,14 +339,18 @@ install:
 	ln -sf services		$(DESTDIR)/srv/salt/ceph/stage/4
 	ln -sf removal		$(DESTDIR)/srv/salt/ceph/stage/5
 
+install: copy-files
+	sed -i '/^master_minion:/s!_REPLACE_ME_!'`hostname -f`'!' /srv/pillar/ceph/master_minion.sls
+	chown -R salt /srv/pillar/ceph
+	systemctl restart salt-master
 
-rpm: tarball
+rpm: tarball test
 	rpmbuild -bb deepsea.spec
 
-tarball: tests
+# Removing test dependency until resolved
+tarball: 
 	VERSION=`awk '/^Version/ {print $$2}' deepsea.spec`; \
 	git archive --prefix deepsea-$$VERSION/ -o ~/rpmbuild/SOURCES/deepsea-$$VERSION.tar.gz HEAD
 
-tests:
-	@echo "Need to write tests :)"
-
+test:
+	tox
