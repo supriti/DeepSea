@@ -312,8 +312,8 @@ copy-files:
 	install -m 644 srv/salt/ceph/rescind/master/*.sls $(DESTDIR)/srv/salt/ceph/rescind/master/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/client-cephfs
 	install -m 644 srv/salt/ceph/rescind/client-cephfs/*.sls $(DESTDIR)/srv/salt/ceph/rescind/client-cephfs/
-	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/client-nfs
-	install -m 644 srv/salt/ceph/rescind/client-nfs/*.sls $(DESTDIR)/srv/salt/ceph/rescind/client-nfs/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/client-ganesha
+	install -m 644 srv/salt/ceph/rescind/client-ganesha/*.sls $(DESTDIR)/srv/salt/ceph/rescind/client-ganesha/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/mds-nfs
 	install -m 644 srv/salt/ceph/rescind/mds-nfs/*.sls $(DESTDIR)/srv/salt/ceph/rescind/mds-nfs/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/rescind/mds
