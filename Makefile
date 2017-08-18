@@ -111,6 +111,8 @@ copy-files:
 	install -m 644 srv/salt/ceph/ganesha/service/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/service/
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/restart
 	install -m 644 srv/salt/ceph/ganesha/service/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/restart/
+	install -d -m 755 $(DESTDIR)/srv/salt/ceph/ganesha/benchmarks
+	install -m 644 srv/salt/ceph/ganesha/benchmarks/*.sls $(DESTDIR)/srv/salt/ceph/ganesha/benchmarks/
 	# state files - igw
 	install -d -m 755 $(DESTDIR)/srv/salt/ceph/igw
 	install -m 644 srv/salt/ceph/igw/*.sls $(DESTDIR)/srv/salt/ceph/igw/

@@ -107,6 +107,7 @@ systemctl try-restart salt-api > /dev/null 2>&1 || :
 %dir /srv/salt/ceph/ganesha/install
 %dir /srv/salt/ceph/ganesha/restart
 %dir /srv/salt/ceph/ganesha/service
+%dir /srv/salt/ceph/ganesha/benchmarks
 %dir /srv/salt/ceph/igw
 %dir %attr(0700, salt, salt) /srv/salt/ceph/igw/cache
 %dir /srv/salt/ceph/igw/config
